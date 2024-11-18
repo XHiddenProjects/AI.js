@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>AI Training</title>
+        <style>
+            *{
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            html,body{
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+
+        <input type="search" class="aiSearch"/>
+        <button class="submitSearch">Search</button>
+
+        <!--P5JS-->
+        <!--<script defer src="https://unpkg.com/p5.collide2d"></script>-->
+        <script src="https://cdn.jsdelivr.net/npm/p5@1.11.0/lib/p5.min.js"></script>
+        <!--Utils-->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="./utils/Math.js"></script>
+        <script src="./utils/keys.js"></script>
+        <script src="./utils/chart.js"></script>
+        <script src="./utils/tokenizr.min.js"></script>
+        <script src="./utils/nlp.js"></script>
+        <!--AIs-->
+        <!--<script src="./modals/GameAI.js"></script>-->
+        <script src="./modals/searchAI.js"></script>
+        <!--Scripts-->
+        <!--<script src="./examples/game.js"></script>-->
+        <script src="./examples/search.js"></script>
+        <script>
+            const txt = `"I like food?"`;
+            const manager = new NLPManager(['en'],txt,);
+            manager.normalize();
+            const tokens = manager.tokenizer();
+            console.log(manager.sanitize(tokens));
+        </script>
+    </body>
+</html>
