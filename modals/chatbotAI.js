@@ -12,7 +12,7 @@ class ChatbotAI{
      * @param {[{lang: String, utterance: String, intent: String}]} documents Training documents
      * @param {[{lang: String, intent: String, utterance: String}]} answers AI Responces
      * @param {{text: HTMLInputElement|HTMLTextAreaElement, submit:{key: Number,button: HTMLButtonElement}}} opt Options
-     * @see [axagroupnlp.js - Example of use](https://github.com/axa-group/nlp.js?tab=readme-ov-file#example-of-use)
+     * @see [axa-group/nlp.js - Example of use](https://github.com/axa-group/nlp.js?tab=readme-ov-file#example-of-use)
      */
     constructor(documents, answers, opt){
         if(!window.nlp) throw new ReferenceError('utils/nlp.js must be active');
