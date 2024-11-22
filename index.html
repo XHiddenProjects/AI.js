@@ -13,11 +13,21 @@
                 height: 100%;
             }
         </style>
+
     </head>
     <body>
 
-        <input type="search" class="aiSearch"/>
-        <button class="submitSearch">Search</button>
+        <div class="chatbox">
+            <div class="chatbox-body">
+
+            </div>
+            <div class="chatbox-footer">
+                <div class="chatbox-inputgroup">
+                    <input class="chatbox-msg" placeholder="Enter Message..." type="text">
+                    <button class="chatbox-submit">Submit</button>
+                </div>
+            </div>
+        </div>
 
         <!--P5JS-->
         <!--<script defer src="https://unpkg.com/p5.collide2d"></script>-->
@@ -25,22 +35,18 @@
         <!--Utils-->
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="./utils/Math.js"></script>
+        <script src="./utils/text.js"></script>
         <script src="./utils/keys.js"></script>
         <script src="./utils/chart.js"></script>
         <script src="./utils/tokenizr.min.js"></script>
         <script src="./utils/nlp.js"></script>
         <!--AIs-->
         <!--<script src="./modals/GameAI.js"></script>-->
-        <script src="./modals/searchAI.js"></script>
+        <!--<script src="./modals/searchAI.js"></script>-->
+        <script src="./modals/chatbotAI.js"></script>
         <!--Scripts-->
         <!--<script src="./examples/game.js"></script>-->
-        <script src="./examples/search.js"></script>
-        <script>
-            const txt = `"I like food?"`;
-            const manager = new NLPManager(['en'],txt,);
-            manager.normalize();
-            const tokens = manager.tokenizer();
-            console.log(manager.sanitize(tokens));
-        </script>
+        <!--<script src="./examples/search.js"></script>-->
+        <script src="./examples/chatbot.js"></script>
     </body>
 </html>

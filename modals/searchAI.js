@@ -1,3 +1,11 @@
+/**
+ * @package AI.js
+ * @class SearchAI
+ * @description Creates and open-source for a searching
+ * @version 1.0.0
+ * @author XHiddenProjects
+ * @license [MIT](https://github.com/XHiddenProjects/AI.js?tab=MIT-1-ov-file)
+ */
 class searchAI{
     /**
      * Creates an AI for searching

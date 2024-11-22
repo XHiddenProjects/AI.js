@@ -197,7 +197,12 @@ class GameAIObjects{
 
 
 /**
- * GameAI generator
+ * @package AI.js
+ * @class GameAI
+ * @description Creates and open-source for a online games
+ * @version 1.0.0
+ * @author XHiddenProjects
+ * @license [MIT](https://github.com/XHiddenProjects/AI.js?tab=MIT-1-ov-file)
  */
 class GameAI{
     /**
