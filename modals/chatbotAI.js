@@ -12,29 +12,32 @@ class ChatbotAI{
      * @param {[{lang: String, utterance: String, intent: String}]} documents Training documents
      * @param {[{lang: String, intent: String, utterance: String}]} answers AI Responces
      * @param {{text: HTMLInputElement|HTMLTextAreaElement, submit:{key: Number,button: HTMLButtonElement}}} opt Options
+     * @param {Function} callback function to return the function
      * @see [axa-group/nlp.js - Example of use](https://github.com/axa-group/nlp.js?tab=readme-ov-file#example-of-use)
      */
-    constructor(documents, answers, opt){
+    constructor(documents, answers, opt, callback){
         if(!window.nlp) throw new ReferenceError('utils/nlp.js must be active');
         this.opt = opt;
         if(documents.length==0||answers==0) throw new RangeError('Documents and Answers must have 1 item each');
 
         this.docs = documents;
         this.ans = answers;
+        let results;
         opt['text'].addEventListener('keydown',(e)=>{
             const k = e.keyCode||e.which||e.code;
             if(k===this.opt['submit']['key']){
-                this.#submit(opt['text'].value);
+                results = this.#submit(opt['text'].value);
                 opt['text'].value = '';
+                callback(results);
             }
         });
         if(opt['submit'].hasOwnProperty('btn')){
             opt['submit']['btn'].addEventListener('click',()=>{
-                this.#submit(opt['text'].value);
+                results = this.#submit(opt['text'].value);
                 opt['text'].value = '';
+                callback(results);
             });
         }
-
     }
     #submit(txt){
         txt = `"${txt}"`;
@@ -50,6 +53,7 @@ class ChatbotAI{
         });
         manager.train();
         manager.save();
-        console.log(manager.process('en',txt));
+        const responce = manager.process('en',txt);
+        return responce;
     }
 }

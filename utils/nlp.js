@@ -14,6 +14,7 @@ class NLPManager{
 
         this.#stopwords = {};
         this.lang = '';
+        this.selectedLang = '';
         
         NLPManager.prototype.txt = txt;
     
@@ -336,7 +337,7 @@ class NLPManager{
             }
         }
 
-        const answersMatched = [];
+        const answersMatched = [], sentiment={}, entities=[];
         Object.keys(this.nlp).forEach(l=>{
             this.nlp[l]['answers'].forEach(a=>{
                 if(a.intent===classification.sort((a,b)=>b.value-a.value)[0].label){
@@ -345,18 +346,66 @@ class NLPManager{
                         const m1 = txt.similarText(this.tokens,this.sanitize2(this.tokenizer2(this.normalize2(e.utterance))));
                         if(m1!=0){
                             const m2 = txt.similarText(this.sanitize2(this.tokenizer2(this.normalize2(e.utterance))),this.sanitize2(this.tokenizer2(this.normalize2(a.utterance))));
-                            answersMatched.push({document: e.utterance, answer: a.utterance, value: m2});
+                            if(!answersMatched.some(k=>k.answer.match(a.utterance))){
+                                answersMatched.push({document: e.utterance, answer: a.utterance, value: m2});
+                            }
                         }
                     });
                 }
             });
         });
+
+        this.tokens = this.tokens.sort((a,b)=>b-a);
+        answersMatched.forEach(i=>{
+            const s = i.document.split(' ').sort((a,b)=>b-a);
+            if(s.length>this.tokens.length) this.tokens.unshift('');
+            for(let k=0;k<s.length;k++){
+                if(this.tokens[k]){
+                    if(this.tokens[k].match(new RegExp(`${s[k]}`,'i')))
+                        (sentiment['numHits'] ? sentiment['numHits']+=1 : sentiment['numHits'] = 1);
+                }
+            }
+            sentiment['numWords'] = s.length;
+        });
+        console.log()
+        sentiment['score'] = (sentiment['numHits'] / sentiment['numWords']);
+        sentiment['comparative'] = (sentiment['score']/sentiment['numWords']);
+        sentiment['vote'] = (sentiment['comparative']>0 ? 'positive' : (sentiment['comparative']<0 ? 'negitive' : 'neutral'))
+        sentiment['type'] = 'senticon';
+
+
+        answersMatched.forEach(i=>{
+            this.tokens.forEach(t=>{
+                const res = txt.setNER(i['document'],t);
+                if(res&&!entities.some(k=>(k.sourceText!==res[res.length-1].searched))){
+                    entities.push({'start':res[res.length-1].start,
+                    'end': res[res.length-1].end,
+                    'len': res[res.length-1].len,
+                    'accuracy': 0,
+                    'sourceText':  res[res.length-1].searched,
+                    'utteranceText': res[res.length-1].searched,
+                    'entity': res[res.length-1].predictedEntites.join(''),
+                    'resolution': [new Object()]});
+                }
+            });
+        });
+        const uniqueData = (arr) => {
+            const seen = new Set();
+            return arr.filter(item => {
+                const identifier = `${item.start}-${item.end}-${item.len}-${item.accuracy}-${item.sourceText}-${item.utteranceText}-${item.entity}`;
+                if (seen.has(identifier)) {
+                    return false; // Duplicate item
+                }
+                seen.add(identifier);
+                return true; // Unique item
+            });
+        };
         this.results['output'] = {
             classification: classification.sort((a,b)=>b.value-a.value),
             intent: classification.sort((a,b)=>b.value-a.value)[0].label,
             score: classification.sort((a,b)=>b.value-a.value)[0].value,
-            entities: [],
-            sentiment: [],
+            entities: uniqueData(entities),
+            sentiment: sentiment,
             actions:[],
             srcAnswer: (answersMatched.length>0 ? answersMatched.sort((a,b)=>b.value-a.value)[0].answer : ''),
             answer: (answersMatched.length>0 ? answersMatched.sort((a,b)=>b.value-a.value)[0].answer : '')
@@ -379,7 +428,7 @@ class NLPManager{
             const nlp = this.nlp[lang],
             tokens = this.tokens,
             iso = `${lang}-${navigator.languages[0].substring(3)}`;
-            
+            this.results['output']['sentiment']['language'] = (new Intl.Locale(iso)).language.substring(0,2);
             return {
                 utterance: utterance,
                 locale: iso.substring(0,2),

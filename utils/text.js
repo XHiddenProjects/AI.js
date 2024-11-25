@@ -31,6 +31,41 @@ class text{
         
             return similarity;
     }
+    /**
+     * Get word position
+     * @param {String} str String to look for
+     * @param {String} word Word to search
+     * @returns {[{start:Number, end: Number}]} Results of the word position
+     */
+    #wordPositions(str, word) {
+        const regex = new RegExp(word, 'gi');
+        const matches = str.matchAll(regex);
+        const wordPositions = Array.from(matches, match =>  ({ start: match.index, end: match.index + word.length, len: match[0].length, searched: match[0]}));
+        return wordPositions;
+    }
+    /**
+     * set the NER to get the valid accuracy
+     * @param {String} str String to look for
+     * @param {String} word Word to search
+     * @returns {[{start: Number, end: Number, precision: Number, recall: Number, f1score: Number, predictedEntites: String[]}]|false}
+     */
+    setNER(str,word){
+        const x = this.#wordPositions(str,word),
+        ner = new NER();
+        if(x[x.length-1]){
+            const d = ner.getData(x[x.length-1].searched);
+            if(d.f1Score!=0&&x.length>0) {
+                x.forEach(i=>{
+                    i['precision'] = d['precision'];
+                    i['recall'] = d['recall'];
+                    i['f1score'] = d['f1Score'];
+                    i['predictedEntites'] = d['predictedEntites'];
+                });
+                return x;
+            }
+            else return false;
+        }
+    }
 }
 
 window.text = text;
