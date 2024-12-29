@@ -66,11 +66,15 @@ class NER{
     }
     getData(txt){
         let correctEntities = 0,
+        Entities = [],
         predictedEntites = [],
         grantedEntites = [];
-        predictedEntites.push(...Object.keys(this.dictionary));
-        predictedEntites.forEach(entities=>{
-            if(this.dictionary[entities]['list'].includes(txt)) {
+        Entities.push(...Object.keys(this.dictionary));
+        Object.keys(this.dictionary).forEach(d=>{
+            predictedEntites.push(...this.dictionary[d]['list']);
+        })
+        Entities.forEach(entities=>{
+            if(this.dictionary[entities]['list'].includes(txt)||this.dictionary[entities]['list'].some(k=>(txt.match(k)))) {
                 grantedEntites.push(entities);
                 correctEntities++;
             }
@@ -80,6 +84,11 @@ class NER{
         recall = correctEntities / Object.keys(this.dictionary).length;
         let f1Score = 2 * (precision * recall) / (precision + recall);
         f1Score = isNaN(f1Score) ? 0 : f1Score;
-        return { precision: precision, recall: recall, f1Score: f1Score, predictedEntites: grantedEntites};
+        return { 
+            precision: precision, 
+            recall: recall, 
+            f1Score: f1Score, 
+            predictedEntites: grantedEntites
+        };
     }
 }

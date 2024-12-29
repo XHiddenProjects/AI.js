@@ -10,13 +10,14 @@ class NLPManager{
      * @param {JSON} [options={}] Options for each method
      * @returns {NLPManager} 
      */
-    constructor(languages,txt,options={}){
+    constructor(languages,options={}){
 
         this.#stopwords = {};
         this.lang = '';
         this.selectedLang = '';
-        
-        NLPManager.prototype.txt = txt;
+
+
+        NLPManager.prototype.txt = '';
     
         if(!window.Tokenizr) throw new ReferenceError('utils/tokenizr.min.js must be active');
         if(!window.text) throw new ReferenceError('utils/text.js must be active');
@@ -26,18 +27,30 @@ class NLPManager{
         if(!options.hasOwnProperty('tokenizer'))
             options['tokenizer'] = {
                 patterns: [
-                    /[+-]?[0-9]+/,
                     /"((?:\\"|[^\r\n])*)"/,
+                    /([£$€]\d+(?:,\d{3})*(?:\.\d{1,2})?)/,
+                    /\d+(?:\.\d+)?%/,
+                    /[+-]?[0-9]+/,
+                    /\b[\w]{2,}\b/,
                     /\/\/[^\r\n]*\r?\n/,
                     /[ \t\r\n]+/,
                     /./
                 ],
                 callback: [
                     (ctx, match) => {
+                        ctx.accept("quote",match[1].replace(/\\"/g, "\""));
+                    },
+                    (ctx,match)=>{
+                        ctx.accept('money');
+                    },
+                    (ctx,match)=>{
+                        ctx.accept('percentage');
+                    },
+                    (ctx, match) => {
                         ctx.accept("number", parseInt(match[0]))
                     },
                     (ctx, match) => {
-                        ctx.accept("string", match[1].replace(/\\"/g, "\""))
+                        ctx.accept("word");
                     },
                     (ctx, match) => {
                         ctx.ignore()
@@ -131,26 +144,25 @@ class NLPManager{
 
     /**
      * Normalizes the string
+     * @param {String|null} [msg=null] Message to normalize
      * @return {NLPManager}
      */
-    normalize(){
-        this.txt = this.txt.normalize(this.opt.normalize.toLocaleUpperCase());
-        return NLPManager.prototype;
-    }
-    /**
-     * Normalizes the string
-     * @return {String}
-     */
-    normalize2(txt){
-        return txt.normalize(this.opt.normalize.toLocaleUpperCase());
+    normalize(msg=null){
+        if(msg){
+            return msg.normalize(this.opt.normalize.toLocaleUpperCase());
+        }else{
+            this.txt = this.txt.normalize(this.opt.normalize.toLocaleUpperCase());
+            return NLPManager.prototype;
+        }
     }
 
     /**
      * Tokenizes the string
+     * @param {String|null} [msg=null] Message to tokenize
      * @api https://github.com/rse/tokenizr
      * @returns {NLPManager}
      */
-    tokenizer(){
+    tokenizer(msg=null){
         const setTokens = [], 
         tokens = [],
         patterns = this.opt.tokenizer.patterns,
@@ -162,92 +174,22 @@ class NLPManager{
             throw new RangeError('All 3 parameters must be the same amount of length');
         for(let i=0;i<patterns.length;i++)
             lexer.rule(patterns[i],callback[i]);
-        lexer.input(this.txt);
+        lexer.input((msg ? msg : this.txt));
         lexer.debug(false);
         lexer.tokens().forEach((token) => {
             setTokens.push(token.toJSON());
         });
-
-        setTokens.forEach(e=>{
+        setTokens.map(e=>{
             e.value = e.value.replace(/^"|"$/g,'');
-            if(e.value!=="\"\""){
-                e.value.trim().split(' ').forEach(t=>{
-                    tokens.push(t);
-                })
-                
-            }
+            e.text = e.text.replace(/^"|"$/g,'');
         });
-        this.tokens = tokens.filter((e)=>e!=='').map(i=>{
-            return i.replace(/[.?!;,()\[\]:]/g,'');
+        setTokens.forEach(t=>{
+            tokens.push(t);
         });
-        return NLPManager.prototype;
-    }
-    /**
-     * Tokenizes the string
-     * @api https://github.com/rse/tokenizr
-     * @returns {Array} Tokenized string
-     */
-    tokenizer2(tkns){
-        tkns = `"${tkns}"`;
-        const setTokens = [], 
-        tokens = [],
-        patterns = this.opt.tokenizer.patterns,
-        callback = this.opt.tokenizer.callback;
-        if(!window.Tokenizr) throw new ReferenceError("utils/tokenizr.min.js has not been loaded");
-        const lexer = new window.Tokenizr();
-        if(patterns.length==0||callback.length==0) throw new Error('You must have 1+ items');
-        if(patterns.length!==callback.length)
-            throw new RangeError('All 3 parameters must be the same amount of length');
-        for(let i=0;i<patterns.length;i++)
-            lexer.rule(patterns[i],callback[i]);
-        lexer.input(tkns);
-        lexer.debug(false);
-        lexer.tokens().forEach((token) => {
-            setTokens.push(token.toJSON());
-        });
-
-        setTokens.forEach(e=>{
-            e.value = e.value.replace(/^"|"$/g,'');
-            if(e.value!=="\"\""){
-                e.value.trim().split(' ').forEach(t=>{
-                    tokens.push(t);
-                })
-                
-            }
-        });
-        const finalize = tokens.filter((e)=>e!=='').map(i=>{
-            return i.replace(/[.?!;,()\[\]:]/g,'');
-        });
-        return finalize;
-    }
-    /**
-     * Sanitizes the tokens
-     * @returns {NLPManager}
-     */
-    sanitize(){
-        Object.keys(this.nlp).forEach(e=>{
-        const v = this.nlp[e];
-        this.tokens = this.tokens.filter(t=>{
-                if(t!=='')
-                    return v['stopwords'].indexOf(t.toLowerCase()) == -1;
-            });
-        });
-        return NLPManager.prototype;
-    }
-    /**
-     * Sanitizes string
-     * @param {Array} keys Sanitizes the array
-     * @returns {Array}
-     */
-    sanitize2(keys){
-        Object.keys(this.nlp).forEach(e=>{
-        const v = this.nlp[e];
-        keys = keys.filter(t=>{
-                if(t!=='')
-                    return v['stopwords'].indexOf(t.toLowerCase()) == -1;
-            });
-        });
-        return keys;
+        if(!msg){
+            this.tokens = tokens;
+            return NLPManager.prototype;
+        }else return tokens;
     }
 
     /**
@@ -273,181 +215,50 @@ class NLPManager{
     }
 
     train(){
-        const txt = new text();
-        const classification = [],classID=[{intent:'None',value: 0}];
-        Object.keys(this.nlp).forEach(l=>{
-            //txt.measure(this.txt.replace(/^\"|$\"/g,'')
-            this.nlp[l]['documents'].forEach(i=>{
-                const t = this.tokens.sort((a,b)=>a.localeCompare(b)),
-                s = this.sanitize2(this.tokenizer2(this.normalize2(i['utterance']))).sort((a,b)=>a.localeCompare(b)),
-                m = txt.similarText(t,s);
-                classID.push({intent:i['intent'], value: m, utterance: i['utterance']});
+        this.results['output']['sentiment'] = {};
+        this.results['output']['entities'] = [];
+        this.results['output']['classifications'] = [];
+        setTimeout(()=>{
+            this.results['output']['utterance'] = this.txt;
+            this.tokens = this.tokenizer(this.normalize(this.txt));
+            const stopwords = [];
+            Object.keys(this.nlp).forEach(k=>{
+                if(!stopwords.some(sub=>sub.includes(...this.nlp[k].stopwords)))
+                    stopwords.push(this.nlp[k].stopwords);
             });
-        });
-        const setTraining = classID.sort((a,b)=>b.value-a.value);
-        let None=0;
-        setTraining.forEach(i=>{
-            if(!classification.some(l=>l.label===i.intent)){
-                classification.push({label: i.intent, value: i.value});
-            }else{
-                if(classification.some(l=>(l.label===i.intent&&l.value!==0))){
-                    None++;
-                    if(!classification.some(l=>l.label==='None'))
-                        classification.push({label: 'None', value: None})
-                    else{
-                        classification.map(k=>{
-                            if(k.label==='None') k.value = None;
-                        });
-                    }
-                    
-                }
-            }
-        });
-        None=0;
-        classification.forEach(k=>{
-            if(k!=='None'){
-                classID.forEach(i=>{
-                    if(i.intent!=='None'){
-                        if(i.intent===k.label){
-                            if(classification.some(l=>l.label===i.intent&&l.value!=0)){
-                                if(i.value>0){
-                                    k.value*=i.value;
-                                }else
-                                    None+=1;
-                            }
-                        }
-                    }
+            
+            this.tokens = this.tokens.filter(k=>{
+                let isStopWord = false
+                stopwords.forEach(i=>{
+                    if(i.includes(k.value)) isStopWord = true;
                 });
-            }
-        });
-        let removeExtras=0;
-        classification.forEach(k=>{
-            if(k.value>0&&k.label!=='None')
-                removeExtras=k.value;
-        });
-        classification.forEach(k=>{
-            if(k.label==='None')
-                k.value*=(None*Math.pow(removeExtras,2));
-        });
-
-        if(!this.opt.nlu.useNoneFeature){
-            const indexToDelete = classification.findIndex((element) => element.label === 'None');
-            if (indexToDelete !== -1) {
-                classification.splice(indexToDelete, 1);
-            }
-        }
-
-        const answersMatched = [], sentiment={}, entities=[];
-        Object.keys(this.nlp).forEach(l=>{
-            this.nlp[l]['answers'].forEach(a=>{
-                if(a.intent===classification.sort((a,b)=>b.value-a.value)[0].label){
-                    const f = classID.filter(i=>(i.intent===a.intent));
-                    f.forEach(e => {
-                        const m1 = txt.similarText(this.tokens,this.sanitize2(this.tokenizer2(this.normalize2(e.utterance))));
-                        if(m1!=0){
-                            const m2 = txt.similarText(this.sanitize2(this.tokenizer2(this.normalize2(e.utterance))),this.sanitize2(this.tokenizer2(this.normalize2(a.utterance))));
-                            if(!answersMatched.some(k=>k.answer.match(a.utterance))){
-                                answersMatched.push({document: e.utterance, answer: a.utterance, value: m2});
-                            }
-                        }
-                    });
-                }
+                return k.type!=='char'&&!isStopWord&&k.value!=='';
             });
-        });
 
-        this.tokens = this.tokens.sort((a,b)=>b-a);
-        answersMatched.forEach(i=>{
-            const s = i.document.split(' ').sort((a,b)=>b-a);
-            if(s.length>this.tokens.length) this.tokens.unshift('');
-            for(let k=0;k<s.length;k++){
-                if(this.tokens[k]){
-                    if(this.tokens[k].match(new RegExp(`${s[k]}`,'i')))
-                        (sentiment['numHits'] ? sentiment['numHits']+=1 : sentiment['numHits'] = 1);
-                }
-            }
-            sentiment['numWords'] = s.length;
-        });
-        console.log()
-        sentiment['score'] = (sentiment['numHits'] / sentiment['numWords']);
-        sentiment['comparative'] = (sentiment['score']/sentiment['numWords']);
-        sentiment['vote'] = (sentiment['comparative']>0 ? 'positive' : (sentiment['comparative']<0 ? 'negitive' : 'neutral'))
-        sentiment['type'] = 'senticon';
+            console.log(this.tokens);
 
 
-        answersMatched.forEach(i=>{
-            this.tokens.forEach(t=>{
-                const res = txt.setNER(i['document'],t);
-                if(res&&!entities.some(k=>(k.sourceText!==res[res.length-1].searched))){
-                    entities.push({'start':res[res.length-1].start,
-                    'end': res[res.length-1].end,
-                    'len': res[res.length-1].len,
-                    'accuracy': 0,
-                    'sourceText':  res[res.length-1].searched,
-                    'utteranceText': res[res.length-1].searched,
-                    'entity': res[res.length-1].predictedEntites.join(''),
-                    'resolution': [new Object()]});
-                }
-            });
-        });
-        const uniqueData = (arr) => {
-            const seen = new Set();
-            return arr.filter(item => {
-                const identifier = `${item.start}-${item.end}-${item.len}-${item.accuracy}-${item.sourceText}-${item.utteranceText}-${item.entity}`;
-                if (seen.has(identifier)) {
-                    return false; // Duplicate item
-                }
-                seen.add(identifier);
-                return true; // Unique item
-            });
-        };
-        this.results['output'] = {
-            classification: classification.sort((a,b)=>b.value-a.value),
-            intent: classification.sort((a,b)=>b.value-a.value)[0].label,
-            score: classification.sort((a,b)=>b.value-a.value)[0].value,
-            entities: uniqueData(entities),
-            sentiment: sentiment,
-            actions:[],
-            srcAnswer: (answersMatched.length>0 ? answersMatched.sort((a,b)=>b.value-a.value)[0].answer : ''),
-            answer: (answersMatched.length>0 ? answersMatched.sort((a,b)=>b.value-a.value)[0].answer : '')
-        };
-    
-        return NLPManager.prototype;
+
+        },100);
     }
-    /**
-     * Save the results
-     * @returns {NLPManager}
-     */
     save(){
         this.results['saved'] = 1;
-        return NLPManager.prototype;
     }
+    process(lang,txt){
+        this.txt = txt;
 
-    process(lang,utterance){
-        if(this.results['saved']&&Object.keys(this.results['output']).length>0){
-            utterance = utterance.replace(/^\"|\"$/g,'');
-            const nlp = this.nlp[lang],
-            tokens = this.tokens,
-            iso = `${lang}-${navigator.languages[0].substring(3)}`;
-            this.results['output']['sentiment']['language'] = (new Intl.Locale(iso)).language.substring(0,2);
-            return {
-                utterance: utterance,
-                locale: iso.substring(0,2),
-                languageGuessed: false,
-                localeIso2: (new Intl.Locale(iso)).language.substring(0,2),
-                language: (new Intl.DisplayNames([lang],{type: 'language'})).of(lang),
-                domain: 'default',
-                classification: this.results['output']['classification'],
-                intent: this.results['output']['intent'],
-                score: this.results['output']['score'],
-                entities: this.results['output']['entities'],
-                sentiment: this.results['output']['sentiment'],
-                actions: this.results['output']['actions'],
-                srcAnswer: this.results['output']['srcAnswer'],
-                answer: this.results['output']['answer']
-            }
-        }else
-            return {error: 1, message: 'Training has not been made'};
+        const nlp = this.nlp[lang],
+        tokens = this.tokens,
+        iso = `${lang}-${navigator.languages[0].substring(3)}`;
+        this.results['output']['sentiment']['language'] = (new Intl.Locale(iso)).language.substring(0,2);
 
+        if(this.results.saved&&Object.keys(this.results['output']).length>0) return {
+            utterance: this.results['output']['utterance'],
+            classifications: this.results['output']['classifications'],
+            sentiment: this.results['output']['sentiment'],
+            entities: this.results['output']['entities'],
+        };
+        else throw new Error('Training has not been accessed');
     }
 
 }

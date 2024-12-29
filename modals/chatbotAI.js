@@ -40,9 +40,7 @@ class ChatbotAI{
         }
     }
     #submit(txt){
-        txt = `"${txt}"`;
-        const manager = new NLPManager(['en'],txt,{nlu:{useNoneFeature: false}});
-        manager.normalize().tokenizer().sanitize();
+        const manager = new NLPManager(['en'],{nlu:{useNoneFeature: false}});
         // Adds the utterances and intents for the NLP
         this.docs.forEach(t=>{
             manager.addDocument(t['lang'], t['utterance'], t['intent']);
